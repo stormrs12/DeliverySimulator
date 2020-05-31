@@ -30,6 +30,29 @@ namespace DeliverySimulator.GameStates
             addresses = new Dictionary<string, Vector2f>();
             addresses.Add("1-1-1", new Vector2f(272, 287));
             addresses.Add("1-1-2", new Vector2f(448, 287));
+
+            addresses.Add("1-2-1", new Vector2f(672, 287));
+
+            addresses.Add("1-3-1", new Vector2f(1056, 287));
+            addresses.Add("1-3-2", new Vector2f(1248, 287));
+
+
+            addresses.Add("2-1-1", new Vector2f(288, 575));
+            addresses.Add("2-1-2", new Vector2f(416, 559));
+
+            addresses.Add("2-2-1", new Vector2f(688, 575));
+            addresses.Add("2-2-2", new Vector2f(832, 575));
+
+            addresses.Add("2-3-1", new Vector2f(1168, 575));
+
+
+            addresses.Add("3-1-1", new Vector2f(288, 863));
+            addresses.Add("3-1-2", new Vector2f(432, 863));
+
+            addresses.Add("3-2-1", new Vector2f(704, 863));
+            addresses.Add("3-2-2", new Vector2f(832, 847));
+
+            addresses.Add("3-3-1", new Vector2f(1248, 863));
         }
 
         private void InitInvisibleWalls() 

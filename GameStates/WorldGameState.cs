@@ -28,6 +28,7 @@ namespace DeliverySimulator.GameStates
         protected float cameraBoundH = float.MaxValue;
 
         protected string addressOnHand = "";
+        protected Item itemOnHand;
 
         protected Dictionary<string, Vector2f> addresses;
         protected DeliverySpaceTile deliverySpace = new DeliverySpaceTile(-10000, -10000);
@@ -78,8 +79,7 @@ namespace DeliverySimulator.GameStates
         PlayerControlTarget inputTarget = PlayerControlTarget.PlayerCharacter;
         float[] playerInput = new float[] { 0f, 0f, 0f, 0f };
         bool onCar = false;
-        private RectangleShape playerCursor;
-
+        private RectangleShape playerCursor, vehicleExitArea;
         
         public WorldGameState(GameStateConstants thisState, string worldSpritePath) 
             : base(thisState)
@@ -95,9 +95,18 @@ namespace DeliverySimulator.GameStates
 
             inventoryItems.Add(new BoxItem("Adam Smith", "1-1-1"));
             inventoryItems.Add(new BoxItem("Gary Baker", "1-1-2"));
-            inventoryItems.Add(new BoxItem("Joshua Bright", "1-1-3"));
+            inventoryItems.Add(new BoxItem("Joshua Bright", "3-3-1"));
 
             playerCursor = new RectangleShape(new Vector2f(10, 10));
+            playerCursor.FillColor = Color.Transparent;
+            playerCursor.OutlineThickness = -1;
+            playerCursor.OutlineColor = Color.Cyan;
+
+
+            vehicleExitArea = new RectangleShape(new Vector2f(16, 16));
+            vehicleExitArea.FillColor = Color.Transparent;
+            vehicleExitArea.OutlineThickness = -1;
+            vehicleExitArea.OutlineColor = Color.Magenta;
             playerTruck = new Vehicle(new Vector2f(130, 100), "Assets/Sprites/blue_vehicles_waifu2x.png");
             
             entities.Add(player);
@@ -111,6 +120,18 @@ namespace DeliverySimulator.GameStates
             rw.Draw(worldMap);
 
             deliverySpace.Draw(rw);
+            if (Game.Debug) 
+            {
+                foreach (var ads in addresses) 
+                {
+                    var ad = ads.Value;
+                    // Nothing to do with checking vehicle exit path. Just using this
+                    // so I don't have to create another object.
+                    vehicleExitArea.Position = new Vector2f(ad.X, ad.Y);
+                    vehicleExitArea.Size = new Vector2f(16, 16);
+                    rw.Draw(vehicleExitArea);
+                }
+            }
 
             var dstPos = deliverySuccessTextPos;
 
@@ -136,6 +157,7 @@ namespace DeliverySimulator.GameStates
         protected void DrawDebug(RenderWindow rw)
         {
             DrawPlayerCursor(rw);
+
         }
 
         private void DrawGUI(RenderWindow rw) 
@@ -159,6 +181,11 @@ namespace DeliverySimulator.GameStates
 
                     Gui.Inventory(rw, menuCursor, inventoryNames, inventoryDescs);
                     break;
+            }
+
+            if (Game.Debug) 
+            {
+                Gui.Text(rw, "Press F3 to exit debug mode.", 10, 10);
             }
         }
 
@@ -250,18 +277,36 @@ namespace DeliverySimulator.GameStates
                         exitAngle += 90f;
                         exitAngle = exitAngle * (float)Math.PI / 180f;
 
-                        player.Position =
-                            playerTruck.Position + 
+                        var exitTrajectory =
+                            playerTruck.Position +
                             playerTruck.Size / 2 +
                             -player.Size / 2 +
-                            new Vector2f((float)Math.Cos(exitAngle), (float)Math.Sin(exitAngle)) * 10;
+                            new Vector2f((float)Math.Cos(exitAngle), (float)Math.Sin(exitAngle)) * 15;
+                        vehicleExitArea.Position = exitTrajectory;
+                        bool exitBlocked = false;
 
-                        inputTarget = PlayerControlTarget.PlayerCharacter;
+                        foreach (var t in tiles) 
+                        {
+                            if (Collision(
+                                exitTrajectory.X, exitTrajectory.Y, 16, 16, 
+                                t.X, t.Y, t.W, t.H)) 
+                            {
+                                exitBlocked = true;
+                                break;
+                            }
+                        }
 
-                        playerTruck.Velocity.X = 0;
-                        playerTruck.Velocity.Y = 0;
+                        if (!exitBlocked)
+                        {
+                            player.Position = exitTrajectory;
+                            
+                            inputTarget = PlayerControlTarget.PlayerCharacter;
 
-                        player.Visible = true;
+                            playerTruck.Velocity.X = 0;
+                            playerTruck.Velocity.Y = 0;
+
+                            player.Visible = true;
+                        }
                     }
 
                     break;
@@ -276,6 +321,7 @@ namespace DeliverySimulator.GameStates
                         {
                             Array.Fill(playerInput, 0f);
                             inputTarget = PlayerControlTarget.PlayerTruckMenu;
+                            menuCursor = 0;
                         }
                     }
                     break;
@@ -298,8 +344,11 @@ namespace DeliverySimulator.GameStates
                                 inputTarget = PlayerControlTarget.PlayerTruck;
                                 break;
                             case (int)TruckMenu.AccessInventory:
-                                inputTarget = PlayerControlTarget.Inventory;
-                                menuCursor = 0;
+                                if (inventoryItems.Count > 0)
+                                {
+                                    inputTarget = PlayerControlTarget.Inventory;
+                                    menuCursor = 0;
+                                }
                                 break;
                             case (int)TruckMenu.Exit:
                                 menuCursor = 0;
@@ -307,34 +356,65 @@ namespace DeliverySimulator.GameStates
                                 break;
                         }
                     }
+
+                    if (key == Keyboard.Key.X) 
+                    {
+                        inputTarget = PlayerControlTarget.PlayerCharacter;
+                        menuCursor = 0;
+                    }
                     break;
                 case PlayerControlTarget.Inventory:
                     if (key == Keyboard.Key.Down)
                     {
-                        menuCursor = (menuCursor + 1) % 3;
+                        menuCursor = (menuCursor + 1) % inventoryItems.Count;
                     }
                     else if (key == Keyboard.Key.Up)
                     {
-                        menuCursor = (menuCursor == 0 ? 2 : menuCursor - 1);
+                        menuCursor = (menuCursor == 0 ? inventoryItems.Count - 1 : menuCursor - 1);
                     }
+
+                    else if (key == Keyboard.Key.X)
+                    {
+                        inputTarget = PlayerControlTarget.PlayerTruckMenu;
+                        menuCursor = 0;
+                    }
+                    else if (key == Keyboard.Key.Z) 
+                    {
+                        HandleItemUse();
+                    }
+
                     break;
             }
+        }
 
-            /*
-            if (inventoryUp)
+        private void HandleItemUse() 
+        {
+            if (inventoryItems[menuCursor].ItemID == "ITEM_BOX")
             {
-                if (key == Keyboard.Key.Down) inventoryCursor = (inventoryCursor + 1) > inventoryItems.Count ? 0 : inventoryCursor + 1;
-                if (key == Keyboard.Key.Up) inventoryCursor = inventoryCursor <= 0 ? inventoryItems.Count - 1 : inventoryCursor - 1;
-
-                if (key == Keyboard.Key.Z) 
+                if (itemOnHand == null)
                 {
-                    if (inventoryItems[inventoryCursor].ItemID == "ITEM_BOX") 
-                    {
-                        addressOnHand = (inventoryItems[inventoryCursor] as BoxItem).Address;
-                        inventoryItems.RemoveAt(inventoryCursor);
-                    }
+                    itemOnHand = inventoryItems[menuCursor];
+                    inventoryItems.RemoveAt(menuCursor);
                 }
-            }*/
+                else 
+                {
+                    var tmp = itemOnHand;
+
+                    itemOnHand = inventoryItems[menuCursor];
+                    inventoryItems.RemoveAt(menuCursor);
+                    inventoryItems.Insert(menuCursor, tmp);
+                }
+
+                
+                if (inventoryItems.Count <= 0) 
+                {
+                    menuCursor = 0;
+                    inputTarget = PlayerControlTarget.PlayerTruckMenu;
+                    return;
+                }
+
+                menuCursor = Math.Clamp(menuCursor, 0, inventoryItems.Count - 1);
+            }
         }
 
         public override void KeyUp(Keyboard.Key key)
@@ -351,7 +431,35 @@ namespace DeliverySimulator.GameStates
 
         private void DrawPlayerCursor(RenderWindow rw) 
         {
+            float exitAngle = 0f;
+            switch (playerTruck.SpriteFrame)
+            {
+                case 5:
+                    exitAngle = 0f;
+                    break;
+                case 7:
+                    exitAngle = 90f;
+                    break;
+                case 1:
+                    exitAngle = 180;
+                    break;
+                case 3:
+                    exitAngle = -90f;
+                    break;
+            }
+
+            exitAngle += 90f;
+            exitAngle = exitAngle * (float)Math.PI / 180f;
+
+            var exitTrajectory =
+                playerTruck.Position +
+                playerTruck.Size / 2 +
+                -player.Size / 2 +
+                new Vector2f((float)Math.Cos(exitAngle), (float)Math.Sin(exitAngle)) * 15;
+            vehicleExitArea.Position = exitTrajectory;
+
             rw.Draw(playerCursor);
+            rw.Draw(vehicleExitArea);
         }
 
         private void UpdatePlayerCursor(float delta) 
@@ -404,11 +512,11 @@ namespace DeliverySimulator.GameStates
 
         private void UpdateDeliverySpace(float delta)
         {
-            if (addresses != null)
+            if (addresses != null && itemOnHand != null)
             {
-                if (addresses.ContainsKey(addressOnHand)) 
+                if (addresses.ContainsKey((itemOnHand as BoxItem).Address)) 
                 {
-                    var newPos = addresses[addressOnHand];
+                    var newPos = addresses[(itemOnHand as BoxItem).Address];
                     deliverySpace.Position = newPos;
                 }
             }
@@ -421,6 +529,8 @@ namespace DeliverySimulator.GameStates
                 deliverySuccessTextPos = deliverySpace.Position;
                 deliverySpace.Position = new Vector2f(-10000, -10000);
                 deliverySuccessPopupY = 0;
+                itemOnHand = null;
+                menuCursor = Math.Clamp(menuCursor, 0, inventoryItems.Count - 1);
             }
 
             deliverySuccessPopupY += 10 * delta;

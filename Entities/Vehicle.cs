@@ -34,8 +34,6 @@ namespace DeliverySimulator.Entities
         public override void Update(float delta)
         {
             float vehicleAngle = (float)Math.Atan2(Velocity.Y, Velocity.X) * 180 / (float)Math.PI;
-            Console.WriteLine(vehicleAngle);
-
             float velocityLength = (float)Math.Sqrt(Velocity.X * Velocity.X + Velocity.Y * Velocity.Y);
 
             if (velocityLength > 0)

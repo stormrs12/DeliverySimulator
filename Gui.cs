@@ -82,10 +82,29 @@ namespace DeliverySimulator
         {
             var cam = rw.GetView();
 
-            string currentDesc = itemDescs[cursor];
-
             Menu(rw, 10, 10, cursor, itemNames);
-            Menu(rw, 150, 10, -1, new string[] { currentDesc });
+
+            string currentDesc = itemDescs[cursor];
+            string[] descLineWrap = currentDesc.Split(' ');
+            var wordWrappedDesc = new List<string>();
+
+            string currentLine = "";
+            foreach (string word in descLineWrap) 
+            {
+                if ((currentLine + word).Length >= 20)
+                {
+                    wordWrappedDesc.Add(currentLine);
+                    currentLine = word;
+                }  
+                else 
+                {
+                    currentLine += " " + word;
+                }
+            }
+            if (!String.IsNullOrEmpty(currentLine))
+                wordWrappedDesc.Add(currentLine);
+
+            Menu(rw, 150, 10, -1, wordWrappedDesc.ToArray());
         }
 
         public static void Menu(RenderWindow rw, float x, float y, int cursor, string[] choices, int wrapW = -1) 
@@ -108,11 +127,13 @@ namespace DeliverySimulator
             for (int i = 0; i < choices.Length; i++) 
             {
                 string selector = 
-                    (i == cursor) && (cursor > -1)? 
+                    (i == cursor) ? 
                     "->" : "  ";
 
+                int xOffset = 8;
+                if (cursor == -1) xOffset = 0;
 
-                Text(rw, selector + choices[i], 8 + x, 8 + (y + 8 * i));
+                Text(rw, selector + choices[i], xOffset + x, 8 + (y + 8 * i));
             }
 
         }
@@ -137,7 +158,7 @@ namespace DeliverySimulator
         {
             DisplayText.Position = new Vector2f(x, y);
             DisplayText.DisplayedString = text;
-
+            
             rw.Draw(DisplayText);
         }
 
