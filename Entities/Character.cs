@@ -14,6 +14,8 @@ namespace DeliverySimulator.Entities
             spriteAnimator = new SpriteAnimator(sprite.Texture, 4, 4, 15);
             Size = new Vector2f(16, 16);
             Speed = 100;
+
+            ID = "ENTITY_PLAYER";
         }
 
         public int SpriteRow {  get => spriteAnimator.CurrentRow; }

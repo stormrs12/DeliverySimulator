@@ -15,6 +15,8 @@ namespace DeliverySimulator.Entities
         public float Weight { get; set; } = 1;
         public bool Visible { get; set; } = true;
 
+        public string ID { get; protected set; } = "ENTITY_NONE";
+
         protected Sprite sprite;
         protected SpriteAnimator spriteAnimator;
 

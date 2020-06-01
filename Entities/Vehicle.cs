@@ -20,6 +20,8 @@ namespace DeliverySimulator.Entities
             Size = new Vector2f(26, 37); spriteAnimator.Playing = false;
 
             Weight = 10;
+
+            ID = "ENTITY_PLAYER_VEHICLE";
         }
 
         public Vector2f SpritePosition

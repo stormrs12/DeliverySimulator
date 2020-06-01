@@ -60,14 +60,14 @@ namespace DeliverySimulator
 
                     if (states.Count > 0) 
                     {
-                        if (rw.HasFocus()) {
+                        //if (rw.HasFocus()) {
                             rw.Clear();
                             states.Peek().Update(delta);
 
                             states.Peek().Draw(rw);
 
                             rw.Display();
-                        }
+                        //}
                     } else { 
                         rw.Close(); 
                     }

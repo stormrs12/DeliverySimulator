@@ -17,6 +17,8 @@ namespace DeliverySimulator.Tiles
         private Sprite sprite;
         protected RectangleShape debugShape;
         public bool Empty { get; private set; }
+        public bool Solid { get; set; } = true;
+        public List<string> CollisionException = new List<string>();
 
         public Vector2f Position
         {
@@ -111,5 +113,7 @@ namespace DeliverySimulator.Tiles
         }
 
         public virtual void Update(float delta) { }
+
+        public virtual void OnCollide(object b) { }
     }
 }

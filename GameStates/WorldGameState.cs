@@ -21,6 +21,7 @@ namespace DeliverySimulator.GameStates
         RectangleShape tmp= new RectangleShape(new Vector2f(16, 16));
         protected View camera;
         protected View guiView;
+        protected Entity cameraTarget;
 
         protected float cameraBoundX = float.MinValue;
         protected float cameraBoundY = float.MinValue;
@@ -71,7 +72,8 @@ namespace DeliverySimulator.GameStates
             PlayerCharacter = 0,
             PlayerTruckMenu = 1,
             PlayerTruck = 2,
-            Inventory = 3
+            Inventory = 3,
+            None = 4
         }
 
         Character player = new Character(new Vector2f(130, 30), "Assets/Sprites/sprite_main.png");
@@ -111,6 +113,10 @@ namespace DeliverySimulator.GameStates
             
             entities.Add(player);
             entities.Add(playerTruck);
+
+            inputTarget = PlayerControlTarget.PlayerCharacter;
+
+            cameraTarget = player;
         }
 
         public override void Draw(RenderWindow rw)
@@ -229,14 +235,23 @@ namespace DeliverySimulator.GameStates
 
                 for (int k = 0; k < tiles.Count; k++)
                 {
+                    if (tiles[k].CollisionException.Contains(entities[i].ID))
+                        continue;
+
                     if (Collision(
                         entities[i].Position.X, entities[i].Position.Y, entities[i].Size.X, entities[i].Size.Y,
                         tiles[k].X, tiles[k].Y, tiles[k].W, tiles[k].H))
                     {
-                        entities[i].Position = CollisionResponsePixelSnap(
-                            entities[i].Position.X, entities[i].Position.Y, entities[i].Size.X, entities[i].Size.Y,
-                        tiles[k].X, tiles[k].Y, tiles[k].W, tiles[k].H
-                            );
+
+                        if (tiles[k].Solid)
+                        {
+                            entities[i].Position = CollisionResponsePixelSnap(
+                                entities[i].Position.X, entities[i].Position.Y, entities[i].Size.X, entities[i].Size.Y,
+                            tiles[k].X, tiles[k].Y, tiles[k].W, tiles[k].H
+                                );
+                        }
+
+                        tiles[k].OnCollide(entities[i]);
                     }
                 }
             }
@@ -543,9 +558,14 @@ namespace DeliverySimulator.GameStates
         private void UpdateCamera(float delta) 
         {
             if (inputTarget == PlayerControlTarget.PlayerTruck)
-                camera.Center = playerTruck.Position + player.Size / 2;
+                cameraTarget = playerTruck;
             else if (inputTarget == PlayerControlTarget.PlayerCharacter)
-                camera.Center = player.Position + player.Size / 2;
+                cameraTarget = player;
+
+            if (cameraTarget is Vehicle)
+                camera.Center = cameraTarget.Position + player.Size / 2;
+            else
+                camera.Center = cameraTarget.Position + cameraTarget.Size / 2;
 
             float cameraLeft = camera.Center.X - camera.Size.X / 2;
             float cameraTop = camera.Center.Y - camera.Size.Y / 2;
